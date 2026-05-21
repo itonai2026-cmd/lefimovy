@@ -1,0 +1,212 @@
+<?php
+/**
+ * Movify – Video Generation Endpoint (AJAX)
+ *
+ * Accepts POST with: prompt, model, resolution, duration, format, image (file).
+ * Submits a job to Fal.ai queue and returns the queue_id for polling.
+ */
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/includes/functions.php';
+require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/includes/credits_helper.php';
+
+header('Content-Type: application/json');
+
+// ── Auth guard ──────────────────────────────────────────────────────
+if (empty($_SESSION['user_id'])) {
+    json_response(['ok' => false, 'error' => 'Unauthorized.'], 401);
+}
+
+if (!is_post()) {
+    json_response(['ok' => false, 'error' => 'Method not allowed.'], 405);
+}
+
+$userId = (int)$_SESSION['user_id'];
+
+// ── Collect & validate params ───────────────────────────────────────
+$prompt     = post('prompt');
+$model      = post('model');
+$resolution = post('resolution');
+$duration   = (int)post('duration');
+$format     = post('format');
+$fps        = (int)post('fps');
+
+$allowedModels      = array_keys($MODELS_CONFIG);
+$allowedResolutions = ['720p', '1080p', '4k'];
+$allowedDurations   = [4, 6, 8, 10];
+$allowedFormats     = ['movie', 'portrait', 'landscape', 'portrait_32', 'square'];
+
+if (!$prompt && empty($_FILES['image'])) {
+    json_response(['ok' => false, 'error' => 'Provide a prompt or an image.'], 400);
+}
+if (!in_array($model, $allowedModels, true)) {
+    json_response(['ok' => false, 'error' => 'Invalid model.'], 400);
+}
+if (!in_array($resolution, $allowedResolutions, true)) {
+    json_response(['ok' => false, 'error' => 'Invalid resolution.'], 400);
+}
+if (!in_array($duration, $allowedDurations, true)) {
+    json_response(['ok' => false, 'error' => 'Invalid duration.'], 400);
+}
+if (!in_array($format, $allowedFormats, true)) {
+    json_response(['ok' => false, 'error' => 'Invalid format.'], 400);
+}
+
+// ── Resolve model config ────────────────────────────────────────────
+$modelConfig = get_model_config($model);
+if (!$modelConfig) {
+    json_response(['ok' => false, 'error' => 'Missing model configuration.'], 400);
+}
+
+// ── Credit check (base_cost_per_second × duration) ──────────────────
+$cost = calculate_credits($model, $duration);
+
+if (!can_afford($pdo, $userId, $cost)) {
+    json_response(['ok' => false, 'error' => 'Insufficient credits. Cost: ' . $cost], 400);
+}
+
+// ── Handle image upload ─────────────────────────────────────────────
+$imagePath = null;
+$imageUrl  = null;
+
+if (!empty($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+    $file = $_FILES['image'];
+
+    if ($file['size'] > MAX_UPLOAD_SIZE) {
+        json_response(['ok' => false, 'error' => 'Image exceeds the 50 MB limit.'], 400);
+    }
+
+    $allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    $finfo   = finfo_open(FILEINFO_MIME_TYPE);
+    $mime    = finfo_file($finfo, $file['tmp_name']);
+    finfo_close($finfo);
+
+    if (!in_array($mime, $allowed, true)) {
+        json_response(['ok' => false, 'error' => 'Unsupported file type (JPEG, PNG, WebP).'], 400);
+    }
+
+    $ext       = pathinfo($file['name'], PATHINFO_EXTENSION) ?: 'jpg';
+    $filename  = uniqid('img_', true) . '.' . $ext;
+    $imagePath = UPLOAD_DIR . $filename;
+
+    if (!is_dir(UPLOAD_DIR)) {
+        mkdir(UPLOAD_DIR, 0755, true);
+    }
+
+    if (!move_uploaded_file($file['tmp_name'], $imagePath)) {
+        json_response(['ok' => false, 'error' => 'Error saving the image.'], 500);
+    }
+
+    // Upload to Fal.ai CDN so the model can access it
+    $imageUrl = upload_to_fal_cdn($imagePath, $mime);
+    if (!$imageUrl) {
+        json_response(['ok' => false, 'error' => 'Error uploading the image to CDN.'], 500);
+    }
+}
+
+// ── Deduct credits ──────────────────────────────────────────────────
+if (!deduct_credits($pdo, $userId, $cost)) {
+    json_response(['ok' => false, 'error' => 'Insufficient credits (concurrency).'], 400);
+}
+
+// ── Resolve Fal.ai endpoint (text-to-video or image-to-video) ───────
+$hasImage = !empty($imageUrl);
+$endpoint = $hasImage
+    ? ($modelConfig['api_endpoint_i2v'] ?? $modelConfig['api_endpoint'])
+    : $modelConfig['api_endpoint'];
+
+// ── Build API payload ───────────────────────────────────────────────
+$durationParam = $modelConfig['duration_param'] ?? 'duration';
+$durationMap   = $modelConfig['duration_map'] ?? [];
+$durationValue = $durationMap[$duration] ?? $duration;
+
+$payload = [
+    'prompt'       => $prompt,
+    $durationParam => $durationValue,
+    'aspect_ratio' => match($format) {
+        'movie'       => '16:9',
+        'portrait'    => '9:16',
+        'landscape'   => '3:2',
+        'portrait_32' => '2:3',
+        'square'      => '1:1',
+        default       => '16:9',
+    },
+];
+
+if ($hasImage) {
+    $payload['image_url'] = $imageUrl;
+}
+
+// Add FPS if model supports it and value was provided
+$fpsOptions = $modelConfig['fps_options'] ?? [];
+if ($fps && !empty($fpsOptions)) {
+    $payload['frames_per_second'] = in_array($fps, $fpsOptions) ? $fps : ($modelConfig['fps_default'] ?? 16);
+}
+
+// ── Submit to Fal.ai queue ──────────────────────────────────────────
+$ch = curl_init();
+curl_setopt_array($ch, [
+    CURLOPT_URL            => $endpoint,
+    CURLOPT_RETURNTRANSFER => true,
+    CURLOPT_POST           => true,
+    CURLOPT_POSTFIELDS     => json_encode($payload),
+    CURLOPT_HTTPHEADER     => [
+        'Authorization: Key ' . FAL_AI_API_KEY,
+        'Content-Type: application/json',
+    ],
+    CURLOPT_TIMEOUT        => 30,
+]);
+
+$apiResponse = curl_exec($ch);
+$httpCode    = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+$curlError   = curl_error($ch);
+curl_close($ch);
+
+if ($curlError || $httpCode >= 400) {
+    refund_credits($pdo, $userId, $cost);
+    error_log("Fal.ai error [{$httpCode}]: {$curlError} – {$apiResponse}");
+    json_response(['ok' => false, 'error' => 'Video generation error. Credits have been refunded.'], 502);
+}
+
+$apiData = json_decode($apiResponse, true);
+$queueId   = $apiData['request_id'] ?? $apiData['id'] ?? null;
+$statusUrl = $apiData['status_url'] ?? null;
+$responseUrl = $apiData['response_url'] ?? null;
+
+if (!$queueId) {
+    refund_credits($pdo, $userId, $cost);
+    json_response(['ok' => false, 'error' => 'Unexpected API response.'], 502);
+}
+
+// ── Save video record (status = processing) ─────────────────────────
+$stmt = $pdo->prepare(
+    'INSERT INTO videos (user_id, prompt, image_path, model_used, resolution, duration, format, video_url, credits_deducted, status, queue_id, status_url, response_url, api_endpoint)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+);
+$stmt->execute([
+    $userId,
+    $prompt,
+    $imagePath,
+    $model,
+    $resolution,
+    $duration,
+    $format,
+    '',         // video_url filled after completion
+    $cost,
+    'processing',
+    $queueId,
+    $statusUrl,
+    $responseUrl,
+    $endpoint,
+]);
+
+$videoId = (int)$pdo->lastInsertId();
+
+json_response([
+    'ok'        => true,
+    'video_id'  => $videoId,
+    'queue_id'  => $queueId,
+    'cost'      => $cost,
+    'credits'   => get_credits($pdo, $userId),
+    'message'   => 'Video is being generated...',
+]);

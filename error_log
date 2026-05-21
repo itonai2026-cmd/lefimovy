@@ -1,0 +1,2 @@
+[21-May-2026 20:11:50 Europe/Bucharest] PHPMailer Error: SMTP Error: Could not connect to SMTP host. Failed to connect to server SMTP server error: Failed to connect to server
+[21-May-2026 20:13:51 Europe/Bucharest] Email sent successfully to itonai2026@gmail.com via PHPMailer
