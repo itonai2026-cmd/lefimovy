@@ -1,5 +1,5 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/r133813iton/public_html/wp/lefimovy/
+    - export DEPLOYPATH=/r133813iton/public_html/wp/lefimovy/
     - /bin/cp -R * $DEPLOYPATH
