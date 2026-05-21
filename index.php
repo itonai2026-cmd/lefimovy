@@ -1,6 +1,6 @@
 <?php
 /**
- * Movify – Landing Page
+ * Lefimovy – Landing Page
  * Redirects authenticated users to the dashboard.
  */
 require_once __DIR__ . '/config.php';
@@ -19,7 +19,7 @@ require_once __DIR__ . '/includes/header.php';
         <!-- Logo / Brand -->
         <div>
             <h1 class="text-5xl font-bold bg-gradient-to-r from-primary-400 to-purple-400 bg-clip-text text-transparent">
-                Movify
+                Lefimovy
             </h1>
             <p class="mt-3 text-gray-400 text-lg">AI Video Generator – from text and image</p>
         </div>

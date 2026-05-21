@@ -1,6 +1,6 @@
 <?php
 /**
- * Movify – Global Configuration
+ * Lefimovy – Global Configuration
  *
  * Database credentials, session settings, and app constants.
  * For production, load sensitive values from environment variables.
@@ -60,15 +60,15 @@ try {
 }
 
 // ── App Constants ───────────────────────────────────────────────────
-define('APP_NAME', 'Movify');
+define('APP_NAME', 'Lefimovy');
 define('APP_URL', getenv('APP_URL') ?: 'http://localhost');
 define('UPLOAD_DIR', __DIR__ . '/uploads/');
 define('MAX_UPLOAD_SIZE', 50 * 1024 * 1024); // 50 MB
 
 // ── Subdirectory Support ────────────────────────────────────────────
-// Set to '/movify' (no trailing slash) when deployed in a subdirectory.
+// Set to '/lefimovy' (no trailing slash) when deployed in a subdirectory.
 // Set to '' (empty string) when deployed at the domain root.
-define('BASE_PATH', getenv('BASE_PATH') !== false ? rtrim(getenv('BASE_PATH'), '/') : '/wp/movify');
+define('BASE_PATH', getenv('BASE_PATH') !== false ? rtrim(getenv('BASE_PATH'), '/') : '/wp/lefimovy');
 
 // ── AI API ──────────────────────────────────────────────────────────
 define('FAL_AI_API_KEY', getenv('FAL_AI_API_KEY') ?: '');
@@ -114,8 +114,8 @@ define('SMTP_HOST', getenv('SMTP_HOST') ?: 'smtp.gmail.com');
 define('SMTP_PORT', getenv('SMTP_PORT') ?: 587);
 define('SMTP_USER', getenv('SMTP_USER') ?: '');
 define('SMTP_PASS', getenv('SMTP_PASS') ?: '');
-define('SMTP_FROM', getenv('SMTP_FROM') ?: 'noreply@movify.app');
-define('SMTP_FROM_NAME', 'Movify');
+define('SMTP_FROM', getenv('SMTP_FROM') ?: 'noreply@lefimovy.app');
+define('SMTP_FROM_NAME', 'Lefimovy');
 
 // ── CSRF helper ─────────────────────────────────────────────────────
 function csrf_token(): string {

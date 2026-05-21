@@ -1,8 +1,8 @@
-# Movify – cPanel Deployment Guide
+# Lefimovy – cPanel Deployment Guide
 
 ## Overview
 
-This guide explains how to deploy Movify on a cPanel-based hosting server with your specific database and Fal.ai credentials.
+This guide explains how to deploy Lefimovy on a cPanel-based hosting server with your specific database and Fal.ai credentials.
 
 ## Your Server Information
 
@@ -31,7 +31,7 @@ Fal.ai API Key: d6f7fb96-a1e5-4094-87e7-fdef9acfd8f9:0b66c7406b921e669155f6506cd
 ### Import Database Schema
 
 1. SSH into your server or use **cPanel → File Manager**
-2. Navigate to your Movify directory
+2. Navigate to your Lefimovy directory
 3. Run:
    ```bash
    mysql -h r133813iton.cd.cpanel.net -u r133813iton_dacos -p r133813iton_ai_video < database/schema.sql
@@ -47,14 +47,14 @@ Or via phpMyAdmin in cPanel:
 
 ### Option A: Via File Manager
 
-1. In cPanel File Manager, navigate to Movify root directory
+1. In cPanel File Manager, navigate to Lefimovy root directory
 2. Right-click → Create New File → name it `.env`
 3. Edit the file and add:
 
 ```env
 APP_ENV=production
 APP_URL=https://yourdomain.com
-BASE_PATH=/movify
+BASE_PATH=/lefimovy
 
 DB_HOST=r133813iton.cd.cpanel.net
 DB_NAME=r133813iton_ai_video
@@ -75,11 +75,11 @@ FAL_AI_API_KEY=d6f7fb96-a1e5-4094-87e7-fdef9acfd8f9:0b66c7406b921e669155f6506cd0
 
 ```bash
 ssh user@yourdomain.com
-cd /home/user/public_html/movify
+cd /home/user/public_html/lefimovy
 cat > .env << 'EOF'
 APP_ENV=production
 APP_URL=https://yourdomain.com
-BASE_PATH=/movify
+BASE_PATH=/lefimovy
 
 DB_HOST=r133813iton.cd.cpanel.net
 DB_NAME=r133813iton_ai_video
@@ -144,13 +144,13 @@ try {
 ?>
 ```
 
-Visit: `https://yourdomain.com/movify/test_db.php`
+Visit: `https://yourdomain.com/lefimovy/test_db.php`
 
 Delete after testing.
 
 ### Test Email
 
-1. Go to `https://yourdomain.com/movify/register.php`
+1. Go to `https://yourdomain.com/lefimovy/register.php`
 2. Register a test account
 3. Check if you receive verification email
 4. If not, check:
@@ -177,7 +177,7 @@ Video generation will work once configured.
 SSH into server:
 
 ```bash
-cd /home/user/public_html/movify
+cd /home/user/public_html/lefimovy
 
 # .env should not be world-readable
 chmod 600 .env
@@ -195,7 +195,7 @@ cat .gitignore | grep .env
 Your directory structure should look like:
 
 ```
-/public_html/movify/
+/public_html/lefimovy/
 ├── .env                  ← Created (DO NOT commit)
 ├── .env.example         ← Template (OK to commit)
 ├── .gitignore           ← Protects .env
@@ -310,7 +310,7 @@ User videos accumulate in `uploads/`. Consider:
 ```env
 APP_ENV=production          ← Hide error messages
 APP_URL=https://yourdomain.com
-BASE_PATH=/movify          ← If in subdirectory, else leave /
+BASE_PATH=/lefimovy          ← If in subdirectory, else leave /
 
 DB_HOST=r133813iton.cd.cpanel.net
 DB_NAME=r133813iton_ai_video
@@ -337,4 +337,4 @@ If deployment fails:
 
 ---
 
-**Deployment completed!** Your Movify instance should now be live with full email verification.
+**Deployment completed!** Your Lefimovy instance should now be live with full email verification.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The email verification system in Movify has been fully implemented with SMTP support. This guide explains how to configure and test it.
+The email verification system in Lefimovy has been fully implemented with SMTP support. This guide explains how to configure and test it.
 
 ## Problem Solved
 
@@ -223,14 +223,14 @@ Set these via your hosting control panel or server configuration:
 ```bash
 # .env or server variables
 DB_HOST=prod-db.example.com
-DB_USER=movify_user
+DB_USER=lefimovy_user
 DB_PASS=strong_password_here
 SMTP_HOST=smtp.sendgrid.net
 SMTP_PORT=587
 SMTP_USER=apikey
 SMTP_PASS=SG.xxxxxxxxxxxxx
 FAL_AI_API_KEY=your_production_key
-APP_URL=https://movify.example.com
+APP_URL=https://lefimovy.example.com
 APP_ENV=production
 ```
 

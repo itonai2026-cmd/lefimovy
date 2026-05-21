@@ -1,4 +1,4 @@
-# Movify – AI Video Generator
+# Lefimovy – AI Video Generator
 
 Multi-user web application for generating videos from text prompts and images using AI models (Wan 2.6 Fast, LTX Video 2.0, Kling 2.6 Turbo) via Fal.ai.
 
@@ -70,7 +70,7 @@ Upload all files to your LiteSpeed web server document root. Ensure:
 ## File Structure
 
 ```
-movify/
+lefimovy/
 ├── config.php              # DB connection, constants, CSRF
 ├── database/schema.sql     # MySQL schema
 ├── includes/
